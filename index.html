@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600&family=Nunito:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <script>
+      // Prevent crash if process.env is missing in browser
+      window.process = { env: { API_KEY: '' } };
+      
       tailwind.config = {
         theme: {
           extend: {
@@ -23,8 +26,8 @@
                 300: '#ffa1b3',
                 400: '#ff6b89',
                 500: '#f43f68',
-                600: '#e11d53', // Darker elegant rose
-                800: '#9e143b', // Deep wine
+                600: '#e11d53',
+                800: '#9e143b',
                 900: '#831535',
               }
             },
@@ -64,5 +67,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
