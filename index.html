@@ -6,12 +6,18 @@
     <title>For Vasvi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600&family=Nunito:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-    <!-- Babel Standalone to compile React/TS in the browser -->
+    <!-- Babel for browser-side compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <script>
-      // Process polyfill for browser environment
+      // 1. Polyfill process for the browser
       window.process = { env: { API_KEY: '' } };
+
+      // 2. Global Error Handler to see crashes on mobile/deployment
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
+        return false;
+      };
       
       tailwind.config = {
         theme: {
@@ -54,6 +60,7 @@
         background-color: #fff0f3;
       }
     </style>
+    <!-- 3. Fixed Import Map: Removed duplicates and ensured versions match -->
     <script type="importmap">
 {
   "imports": {
@@ -63,8 +70,8 @@
     "lucide-react": "https://esm.sh/lucide-react@0.292.0",
     "canvas-confetti": "https://esm.sh/canvas-confetti@1.9.0",
     "@google/genai": "https://esm.sh/@google/genai@0.1.1",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
@@ -72,7 +79,8 @@
   <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-type="module" data-presets="react,typescript">
+    <!-- 4. Main Application Script -->
+    <script type="text/babel" data-type="module">
       import React, { useState, useEffect } from 'react';
       import { createRoot } from 'react-dom/client';
       import { motion, AnimatePresence } from 'framer-motion';
@@ -90,7 +98,6 @@
       };
 
       const apiKey = getApiKey();
-      // Initialize only if key exists to avoid immediate errors, otherwise handle in function
       const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
       const generateRomanticPoem = async () => {
@@ -100,10 +107,10 @@
 
         try {
           const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: "Write a short, very romantic, 4-line poem asking my wife Vasvi to be my valentine. It should be sweet, playful, and mention 'us' against the world. Do not include markdown formatting.",
           });
-          return response.text() || fallback;
+          return response.text || fallback;
         } catch (error) {
           console.error("Gemini generation error:", error);
           return fallback;
