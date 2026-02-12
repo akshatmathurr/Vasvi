@@ -3,11 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>For My Valentine</title>
+    <title>For Vasvi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600&family=Nunito:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <!-- Babel Standalone to compile React/TS in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
     <script>
-      // Prevent crash if process.env is missing in browser
+      // Process polyfill for browser environment
       window.process = { env: { API_KEY: '' } };
       
       tailwind.config = {
@@ -51,22 +54,574 @@
         background-color: #fff0f3;
       }
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "framer-motion": "https://esm.sh/framer-motion@^12.34.0",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "framer-motion": "https://esm.sh/framer-motion@10.16.4",
+    "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+    "canvas-confetti": "https://esm.sh/canvas-confetti@1.9.0",
+    "@google/genai": "https://esm.sh/@google/genai@0.1.1",
     "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "canvas-confetti": "https://esm.sh/canvas-confetti@^1.9.4"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
 </script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+
+    <script type="text/babel" data-type="module" data-presets="react,typescript">
+      import React, { useState, useEffect } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { motion, AnimatePresence } from 'framer-motion';
+      import { Heart, ChevronRight, RotateCcw, Lock, Unlock, Gift } from 'lucide-react';
+      import confetti from 'canvas-confetti';
+      import { GoogleGenAI } from '@google/genai';
+
+      // --- Services ---
+      const getApiKey = () => {
+        try {
+          return process.env.API_KEY || '';
+        } catch (e) {
+          return '';
+        }
+      };
+
+      const apiKey = getApiKey();
+      // Initialize only if key exists to avoid immediate errors, otherwise handle in function
+      const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+      const generateRomanticPoem = async () => {
+        const fallback = "Vasvi, my love, my heart, my soul,\nYou make my life completely whole.\nWill you be my Valentine today,\nAnd walk with me forever, come what may?";
+        
+        if (!ai) return fallback;
+
+        try {
+          const response = await ai.models.generateContent({
+            model: 'gemini-1.5-flash',
+            contents: "Write a short, very romantic, 4-line poem asking my wife Vasvi to be my valentine. It should be sweet, playful, and mention 'us' against the world. Do not include markdown formatting.",
+          });
+          return response.text() || fallback;
+        } catch (error) {
+          console.error("Gemini generation error:", error);
+          return fallback;
+        }
+      };
+
+      // --- Components ---
+
+      const Background = () => {
+        const hearts = Array.from({ length: 12 }).map((_, i) => ({
+          id: i,
+          left: Math.random() * 100,
+          delay: Math.random() * 20,
+          duration: 20 + Math.random() * 10,
+          size: 15 + Math.random() * 20
+        }));
+
+        return (
+          <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#fff0f3]">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-rose-50/50" />
+            {hearts.map((heart) => (
+              <motion.div
+                key={heart.id}
+                className="absolute text-rose-300/20 blur-[1px]"
+                initial={{ y: '110vh', x: `${heart.left}vw`, opacity: 0 }}
+                animate={{ 
+                  y: '-10vh', 
+                  opacity: [0, 0.5, 0],
+                  rotate: [0, 20, -20, 0] 
+                }}
+                transition={{
+                  duration: heart.duration,
+                  repeat: Infinity,
+                  delay: heart.delay,
+                  ease: "linear"
+                }}
+                style={{ fontSize: `${heart.size}px` }}
+              >
+                ♥
+              </motion.div>
+            ))}
+          </div>
+        );
+      };
+
+      const Level1Quiz = ({ onComplete }) => {
+        const [currentQuestion, setCurrentQuestion] = useState(0);
+        const [showError, setShowError] = useState(false);
+
+        const questions = [
+          {
+            text: "Who loves Vasvi the most?",
+            options: ["Brad Pitt", "Her Husband", "The Mailman", "Her Cat"],
+            correct: 1
+          },
+          {
+            text: "What is the key to my heart?",
+            options: ["Pizza", "Vasvi", "Gaming", "Money"],
+            correct: 1
+          },
+          {
+            text: "What are we?",
+            options: ["Just friends", "Vasvi & Her Soulmate", "Neighbors", "Roommates"],
+            correct: 1
+          }
+        ];
+
+        const handleAnswer = (index) => {
+          if (index === questions[currentQuestion].correct) {
+            if (currentQuestion < questions.length - 1) {
+              setCurrentQuestion(prev => prev + 1);
+            } else {
+              onComplete();
+            }
+          } else {
+            setShowError(true);
+            setTimeout(() => setShowError(false), 500);
+          }
+        };
+
+        return (
+          <div className="w-full max-w-md text-center">
+            <span className="inline-block text-xs font-bold tracking-widest text-rose-400 uppercase mb-4">Chapter One</span>
+            <h2 className="text-3xl font-serif text-stone-800 mb-8">Vasvi's Love Quiz</h2>
+
+            <div className="relative">
+              <motion.div
+                key={currentQuestion}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.4 }}
+                className={`bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-sm border border-white/50 mb-8 ${showError ? 'animate-shake ring-1 ring-red-200' : ''}`}
+              >
+                <h3 className="text-xl font-medium text-stone-700 mb-6">{questions[currentQuestion].text}</h3>
+                <div className="space-y-3">
+                  {questions[currentQuestion].options.map((option, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleAnswer(idx)}
+                      className="w-full py-4 px-6 rounded-xl bg-white border border-stone-100 hover:border-rose-200 hover:bg-rose-50 text-stone-600 hover:text-rose-600 transition-all duration-200 text-left text-sm font-medium tracking-wide group"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+            
+            <div className="flex justify-center gap-3">
+              {questions.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={`transition-all duration-300 rounded-full ${
+                    idx === currentQuestion ? 'w-8 bg-rose-400' : 'w-2 bg-rose-200'
+                  } h-2`}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      const ITEMS = ["🌹", "✨", "🧸", "💝", "💍", "🕊️"];
+
+      const Level2Memory = ({ onComplete }) => {
+        const [cards, setCards] = useState([]);
+        const [flippedIndices, setFlippedIndices] = useState([]);
+        
+        useEffect(() => {
+          const duplicatedItems = [...ITEMS, ...ITEMS];
+          const shuffled = duplicatedItems
+            .sort(() => Math.random() - 0.5)
+            .map((item, index) => ({
+              id: index,
+              content: item,
+              isFlipped: false,
+              isMatched: false
+            }));
+          setCards(shuffled);
+        }, []);
+
+        useEffect(() => {
+          if (flippedIndices.length === 2) {
+            const [first, second] = flippedIndices;
+            if (cards[first].content === cards[second].content) {
+              const newCards = [...cards];
+              newCards[first].isMatched = true;
+              newCards[second].isMatched = true;
+              setCards(newCards);
+              setFlippedIndices([]);
+
+              if (newCards.every(c => c.isMatched)) {
+                setTimeout(onComplete, 1000);
+              }
+            } else {
+              setTimeout(() => {
+                const newCards = [...cards];
+                newCards[first].isFlipped = false;
+                newCards[second].isFlipped = false;
+                setCards(newCards);
+                setFlippedIndices([]);
+              }, 800);
+            }
+          }
+        }, [flippedIndices, cards, onComplete]);
+
+        const handleCardClick = (index) => {
+          if (flippedIndices.length >= 2 || cards[index].isFlipped || cards[index].isMatched) return;
+          const newCards = [...cards];
+          newCards[index].isFlipped = true;
+          setCards(newCards);
+          setFlippedIndices([...flippedIndices, index]);
+        };
+
+        return (
+          <div className="w-full max-w-md text-center">
+            <span className="inline-block text-xs font-bold tracking-widest text-rose-400 uppercase mb-4">Chapter Two</span>
+            <h2 className="text-3xl font-serif text-stone-800 mb-8">Vasvi's Memory Lane</h2>
+
+            <div className="grid grid-cols-4 gap-4 p-4 bg-white/40 backdrop-blur-sm rounded-3xl border border-white/40">
+              {cards.map((card, index) => (
+                <motion.div
+                  key={card.id}
+                  className="aspect-square cursor-pointer relative"
+                  onClick={() => handleCardClick(index)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className={`w-full h-full rounded-2xl transition-all duration-500 transform shadow-sm flex items-center justify-center text-2xl
+                    ${(card.isFlipped || card.isMatched) ? 'bg-white rotate-y-180 text-rose-500' : 'bg-rose-200/50 hover:bg-rose-200'}`}>
+                    {(card.isFlipped || card.isMatched) ? card.content : ''}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      const Level3Unlock = ({ onComplete }) => {
+        const [code, setCode] = useState(['', '', '', '']);
+        const CORRECT_CODE = ['0', '2', '1', '4']; // Feb 14
+
+        const handleChange = (index, value) => {
+          if (!/^\d*$/.test(value)) return;
+          
+          const newCode = [...code];
+          newCode[index] = value.slice(-1); 
+          setCode(newCode);
+
+          if (value && index < 3) {
+            document.getElementById(`code-${index + 1}`)?.focus();
+          }
+          
+          if (newCode.every((digit, i) => digit === CORRECT_CODE[i])) {
+            setTimeout(onComplete, 500);
+          }
+        };
+
+        const handleKeyDown = (index, e) => {
+          if (e.key === 'Backspace' && !code[index] && index > 0) {
+            document.getElementById(`code-${index - 1}`)?.focus();
+          }
+        };
+
+        return (
+          <div className="w-full max-w-md text-center">
+            <span className="inline-block text-xs font-bold tracking-widest text-rose-400 uppercase mb-4">Final Chapter</span>
+            <h2 className="text-3xl font-serif text-stone-800 mb-8">Vasvi's Special Date</h2>
+
+            <div className="bg-white/60 backdrop-blur-md p-10 rounded-3xl shadow-sm border border-white/60">
+              <div className="flex justify-center mb-8">
+                 {code.join('') === '0214' ? 
+                  <Unlock className="w-6 h-6 text-rose-400" /> : 
+                  <Lock className="w-6 h-6 text-rose-300" />
+                 }
+              </div>
+
+              <p className="text-stone-500 mb-8 font-light">When do we celebrate love? (MMDD)</p>
+
+              <div className="flex justify-center gap-4">
+                {code.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`code-${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    className="w-12 h-16 text-center text-2xl font-serif text-rose-600 bg-white border border-rose-100 rounded-2xl focus:border-rose-400 focus:ring-0 outline-none transition-all shadow-sm"
+                    autoComplete="off"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const FinalGift = ({ onAccept }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const [poem, setPoem] = useState("Writing the perfect words for Vasvi...");
+
+        useEffect(() => {
+          generateRomanticPoem().then(setPoem);
+        }, []);
+
+        const handleOpen = () => {
+          setIsOpen(true);
+          confetti({
+            particleCount: 150,
+            spread: 60,
+            origin: { y: 0.7 },
+            colors: ['#f43f5e', '#fda4af', '#ffe4e6'],
+            ticks: 200
+          });
+        };
+
+        const handleYes = () => {
+          const end = Date.now() + 3 * 1000;
+          const colors = ['#f43f5e', '#fda4af', '#ffe4e6'];
+
+          (function frame() {
+            confetti({
+              particleCount: 3,
+              angle: 60,
+              spread: 55,
+              origin: { x: 0 },
+              colors: colors
+            });
+            confetti({
+              particleCount: 3,
+              angle: 120,
+              spread: 55,
+              origin: { x: 1 },
+              colors: colors
+            });
+
+            if (Date.now() < end) {
+              requestAnimationFrame(frame);
+            }
+          }());
+          onAccept();
+        };
+
+        if (!isOpen) {
+          return (
+            <div className="text-center cursor-pointer group" onClick={handleOpen}>
+              <motion.div
+                animate={{ rotate: [0, 2, -2, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="bg-white p-10 rounded-[2rem] shadow-xl border border-rose-100 group-hover:shadow-rose-100/50 transition-all duration-500"
+              >
+                <Gift className="w-24 h-24 text-rose-300 stroke-[1px]" />
+              </motion.div>
+              <p className="mt-8 text-xl text-rose-400 font-handwriting tracking-wide opacity-80 group-hover:opacity-100 transition-opacity">
+                For Vasvi
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, type: "spring" }}
+            className="w-full max-w-lg bg-white p-10 md:p-14 rounded-[2rem] shadow-xl border border-rose-50 text-center relative mx-4"
+          >
+            <div className="mb-8">
+              <h2 className="text-4xl font-handwriting text-rose-500 mb-2">My Dearest Vasvi</h2>
+              <div className="w-12 h-0.5 bg-rose-200 mx-auto rounded-full" />
+            </div>
+            
+            <div className="mb-10 relative">
+              <span className="absolute -top-4 -left-2 text-6xl text-rose-100 font-serif opacity-50">"</span>
+              <p className="text-lg md:text-xl text-stone-600 font-serif italic leading-loose">
+                {poem}
+              </p>
+              <span className="absolute -bottom-8 -right-2 text-6xl text-rose-100 font-serif opacity-50">"</span>
+            </div>
+
+            <div className="mt-12 space-y-8">
+              <h3 className="text-2xl font-serif text-stone-800">Will you be my Valentine?</h3>
+              
+              <button
+                onClick={handleYes}
+                className="bg-rose-500 hover:bg-rose-600 text-white text-lg tracking-widest uppercase font-medium py-4 px-12 rounded-full shadow-lg shadow-rose-200 hover:shadow-rose-300 hover:-translate-y-1 transition-all duration-300 w-full md:w-auto"
+              >
+                Yes, I will ❤️
+              </button>
+            </div>
+          </motion.div>
+        );
+      };
+
+      const App = () => {
+        // GameState Enum simulation
+        const GameState = {
+          WELCOME: 'WELCOME',
+          LEVEL_1_QUIZ: 'LEVEL_1_QUIZ',
+          LEVEL_2_MEMORY: 'LEVEL_2_MEMORY',
+          LEVEL_3_CODE: 'LEVEL_3_CODE',
+          FINAL_GIFT: 'FINAL_GIFT',
+          ACCEPTED: 'ACCEPTED'
+        };
+
+        const [gameState, setGameState] = useState(GameState.WELCOME);
+
+        const nextState = () => {
+          switch (gameState) {
+            case GameState.WELCOME:
+              setGameState(GameState.LEVEL_1_QUIZ);
+              break;
+            case GameState.LEVEL_1_QUIZ:
+              setGameState(GameState.LEVEL_2_MEMORY);
+              break;
+            case GameState.LEVEL_2_MEMORY:
+              setGameState(GameState.LEVEL_3_CODE);
+              break;
+            case GameState.LEVEL_3_CODE:
+              setGameState(GameState.FINAL_GIFT);
+              break;
+            case GameState.FINAL_GIFT:
+              setGameState(GameState.ACCEPTED);
+              break;
+          }
+        };
+
+        const restartGame = () => {
+          setGameState(GameState.WELCOME);
+        };
+
+        return (
+          <div className="min-h-screen w-full flex flex-col items-center justify-center p-6 relative font-sans text-stone-800">
+            <Background />
+
+            <main className="z-10 w-full flex flex-col items-center max-w-2xl mx-auto">
+              <AnimatePresence mode="wait">
+                {gameState === GameState.WELCOME && (
+                  <motion.div
+                    key="welcome"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20, filter: "blur(5px)" }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="text-center flex flex-col items-center"
+                  >
+                    <h1 className="text-6xl md:text-8xl text-rose-500 font-handwriting mb-8 tracking-wide">
+                      Hey Vasvi
+                    </h1>
+                    <div className="w-16 h-1 bg-rose-200 rounded-full mb-8" />
+                    <p className="text-lg text-stone-600 mb-12 font-light max-w-md leading-relaxed">
+                      I have a little surprise waiting for you. <br/>
+                      But first, a small journey through our love.
+                    </p>
+                    <button
+                      onClick={nextState}
+                      className="group relative px-8 py-3 bg-white hover:bg-rose-50 text-rose-500 border border-rose-200 rounded-full transition-all duration-300 shadow-sm hover:shadow-md hover:border-rose-300 flex items-center gap-3"
+                    >
+                      <span className="font-medium tracking-wide">Begin</span>
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </motion.div>
+                )}
+
+                {gameState === GameState.LEVEL_1_QUIZ && (
+                  <motion.div
+                    key="level1"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="w-full flex justify-center"
+                  >
+                    <Level1Quiz onComplete={nextState} />
+                  </motion.div>
+                )}
+
+                {gameState === GameState.LEVEL_2_MEMORY && (
+                  <motion.div
+                    key="level2"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="w-full flex justify-center"
+                  >
+                    <Level2Memory onComplete={nextState} />
+                  </motion.div>
+                )}
+
+                {gameState === GameState.LEVEL_3_CODE && (
+                  <motion.div
+                    key="level3"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="w-full flex justify-center"
+                  >
+                    <Level3Unlock onComplete={nextState} />
+                  </motion.div>
+                )}
+
+                {gameState === GameState.FINAL_GIFT && (
+                  <motion.div
+                    key="gift"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="w-full flex justify-center"
+                  >
+                    <FinalGift onAccept={nextState} />
+                  </motion.div>
+                )}
+
+                {gameState === GameState.ACCEPTED && (
+                  <motion.div
+                    key="accepted"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center p-12 bg-white/60 backdrop-blur-md rounded-3xl border border-white shadow-xl flex flex-col items-center"
+                  >
+                    <h1 className="text-5xl md:text-7xl font-handwriting text-rose-500 mb-6">
+                      She Said Yes!
+                    </h1>
+                    <p className="text-xl font-serif italic text-stone-600 mb-8">
+                      Happy Valentine's Day, Vasvi.
+                    </p>
+                    <motion.div 
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="text-6xl text-rose-400 mb-10"
+                    >
+                      ❤️
+                    </motion.div>
+
+                    <button
+                      onClick={restartGame}
+                      className="group flex items-center gap-2 text-stone-400 hover:text-rose-500 transition-colors text-xs font-bold tracking-widest uppercase"
+                    >
+                      <RotateCcw className="w-4 h-4 group-hover:-rotate-180 transition-transform duration-500" />
+                      Restart Journey
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </main>
+
+            <footer className="fixed bottom-6 text-rose-300 text-xs font-medium tracking-widest uppercase">
+              Forever & Always
+            </footer>
+          </div>
+        );
+      };
+
+      const root = createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
   </body>
 </html>
